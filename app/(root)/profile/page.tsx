@@ -4,13 +4,18 @@ import { getEventsByUser } from '@/lib/actions/event.actions'
 import { getOrdersByUser } from '@/lib/actions/order.actions'
 
 import { IOrder } from '@/lib/database/models/order.model'
+import User from '@/lib/database/models/user.model'
 import { SearchParamProps } from '@/types'
 import { auth, clerkClient } from '@clerk/nextjs/server'
 import Link from 'next/link'
 import React from 'react'
 
 const ProfilePage = async ({ searchParams }: SearchParamProps) => {
-  const userId = "";
+  const sessionClaim = await auth();
+  const clerkId = sessionClaim.userId as string;
+  
+  const user = await User.findOne({ clerkId });
+  const userId = user
 
   const ordersPage = Number(searchParams?.ordersPage) || 1;
   const eventsPage = Number(searchParams?.eventsPage) || 1;

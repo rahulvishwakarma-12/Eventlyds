@@ -1,10 +1,15 @@
 import EventForm from "@/components/shared/EventForm"
+import User from "@/lib/database/models/user.model";
 import { auth} from "@clerk/nextjs/server";
 
 
-const CreateEvent = () => {
+const CreateEvent = async () => {
+
+  const sessionClaim = await auth();
+  const clerkId = sessionClaim.userId as string;
   
-  const userId = ""// form getid
+  const user = await User.findOne({ clerkId });
+  const userId = user;
 
   return (
     <>
