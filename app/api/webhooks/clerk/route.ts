@@ -1,8 +1,10 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
-import { WebhookEvent } from '@clerk/nextjs/server'
+import { auth, createClerkClient, WebhookEvent } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import { createUser, deleteUser, updateUser } from '@/lib/actions/user.actions'
+
+const clerkClient = createClerkClient({secretKey:process.env.CLERK_SECRET_KEY});
 
 export async function POST(req: Request) {
   const SIGNING_SECRET = process.env.SIGNING_SECRET
@@ -52,18 +54,29 @@ export async function POST(req: Request) {
   const { id } = evt.data
   const eventType = evt.type
 
-  if(eventType === "user.created"){
-    const{id,email_addresses, image_url,first_name,last_name, username } = 
-    evt.data;
-    await createUser({
-      clerkId:id,
-      username:username || "MyUser",
-      email:email_addresses[0].email_address,
-      photo:image_url,
-      firstName:first_name || "",
-      lastName:last_name || ""
-    });
-    NextResponse.json("User Created");
+  if(eventType === 'user.created') {
+    const { id, email_addresses, image_url, first_name, last_name, username } = evt.data;
+
+    const user = {
+      clerkId: id,
+      email: email_addresses[0].email_address,
+      username: username!,
+      firstName: first_name || "",
+      lastName: last_name || "",
+      photo: image_url,
+    }
+
+    const newUser = await createUser(user);
+
+    if(newUser) {
+      await clerkClient.users.updateUserMetadata(id, {
+        publicMetadata: {
+          userId: newUser._id
+        }
+      })
+    }
+
+    return NextResponse.json({ message: 'OK', user: newUser })
   }
 
   if (eventType === 'user.updated') {
